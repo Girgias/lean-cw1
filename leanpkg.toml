@@ -1,0 +1,8 @@
+[package]
+name = "cw1"
+version = "0.1"
+lean_version = "leanprover-community/lean:3.38.0"
+path = "src"
+
+[dependencies]
+mathlib = {git = "https://github.com/leanprover-community/mathlib", rev = "494f7199ba5bd28ace0bdfecab9bd623f30d3d5b"}
