@@ -1,39 +1,11 @@
 import tactic
 import group_theory.subgroup.basic
-import algebra.group.hom
 
 namespace my_kernel_norm_sub
 
-/-- Lean should really have subgroups as types...
--- Taken from https://tqft.net/web/notes/load.php?name=students/20180219-MitchRowett-ASC-report-on-Lean
-variables {G I : Type} [group G] [group I]
-class subgroup [group G] (S : set G) : Prop :=
-  (mul_mem : ∀ {a b}, a ∈ S → b ∈ S → a * b ∈ S)
-  (one_mem : (1 : G) ∈ S)
-  (inv_mem : ∀ {a}, a ∈ S → a⁻¹ ∈ S)
-
-class normal_subgroup [group G] (S : set G) extends subgroup S : Prop :=
-  (normal : ∀ n ∈ S, ∀ g : G, g * n * g⁻¹ ∈ S)
-
-def trivial (G : Type) [group G] : set G := {1}
-
-instance trivial_in [group G] : normal_subgroup (trivial G) :=
-  begin
-    apply subgroup.one_mem
-  end
-
-class group_hom [group G] [group H] (f : G → H) : Prop :=
-  (hom_mul : ∀ a b, f (a * b) = f a * f b)
-
-def kernel [group G] [group H] (f : G → H) [group_hom f] : set G :=
-  preimage f (trivial H)
---/
---def f : H →* H := monoid_hom.id H 
-
 variables {G J : Type} [group G] [group J]
-variables {H : subgroup G}
-variables {N : subgroup G}
-variables {I : subgroup J}
+variable {H : subgroup G}
+variable {I : subgroup J}
 variable {φ : H →* I}
 
 lemma x_in_kernel_is_identity {k : H}(hk : k ∈ φ.ker) : φ(k) = 1 :=
@@ -41,15 +13,14 @@ begin
   exact hk,
 end
 
-#check x_in_kernel_is_identity
-
 lemma conjugating_k_in_kernel_by_x_is_identity
   {k : H}(hk : k ∈ φ.ker){x : H} : φ(x * k * x⁻¹) = 1 :=
 begin
   -- multiplication 
   have hhom : φ(x * k * x⁻¹) = φ(x) * φ(k) * φ(x⁻¹), {
     -- rewrite twice to get an obvious identiy
-    rw map_mul,rw map_mul,
+    rw map_mul,
+    rw map_mul,
   },
   -- rewrite our hypothethis to expand to multiplication by function
   rw hhom,
@@ -72,17 +43,13 @@ begin
     exact hk,
 end
 
-lemma kernel_is_normal_subgroup_of_domain (f : H →* I) : subgroup.normal (f.ker) :=
-
+theorem kernel_is_normal_subgroup_of_domain (φ : H →* I) : subgroup.normal (φ.ker) :=
 begin
-
-  exact monoid_hom.normal_ker f,
+  -- TODO Look up what refine does
+  refine {conj_mem := _},
+  apply conjugating_kernel_by_x_is_in_kernel,
 end
 
--- type issue...
-theorem bleh (k : H) : φ.ker → H.normal :=
-begin
-  intro K,
-end
+-- Proof wiki: https://proofwiki.org/wiki/Preimage_of_Normal_Subgroup_of_Quotient_Group_under_Quotient_Epimorphism_is_Normal
 
 end my_kernel_norm_sub
