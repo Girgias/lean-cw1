@@ -36,43 +36,51 @@ variables {N : subgroup G}
 variables {I : subgroup J}
 variable {φ : H →* I}
 
-lemma x_in_kernel_is_identity (k : H)(hk : k ∈ φ.ker) : φ(k) = 1 :=
+lemma x_in_kernel_is_identity {k : H}(hk : k ∈ φ.ker) : φ(k) = 1 :=
 begin
   exact hk,
 end
 
 #check x_in_kernel_is_identity
 
-lemma foo (k : H)(hk : k ∈ φ.ker)(x : H) : φ(x * k * x⁻¹) = 1 :=
+lemma conjugating_k_in_kernel_by_x_is_identity
+  {k : H}(hk : k ∈ φ.ker){x : H} : φ(x * k * x⁻¹) = 1 :=
 begin
   -- multiplication 
   have hhom : φ(x * k * x⁻¹) = φ(x) * φ(k) * φ(x⁻¹), {
     -- rewrite twice to get an obvious identiy
     rw map_mul,rw map_mul,
   },
-  -- rewrite our hypothethis
+  -- rewrite our hypothethis to expand to multiplication by function
   rw hhom,
-  -- homomorphism preseve inverses
-  rw map_inv,
-  rw x_in_kernel_is_identity k hk,
+  -- kernel element goes to the identity
+  rw x_in_kernel_is_identity hk,
+  -- Remove the multiplication by 1
+  rw mul_one,
+  -- bring back the multiplication by maps to multiplication within a map
+  rw ← map_mul,
+  -- cancel x * x⁻¹
+  rw mul_right_inv,
+  -- identity maps to identity
+  rw map_one,
 end
 
-lemma blah (f : H →* I) : subgroup.normal (f.ker) :=
+lemma conjugating_kernel_by_x_is_in_kernel
+  {k : H}(hk : k ∈ φ.ker){x : H} : x * k * x⁻¹ ∈ φ.ker :=
+begin
+    apply conjugating_k_in_kernel_by_x_is_identity,
+    exact hk,
+end
+
+lemma kernel_is_normal_subgroup_of_domain (f : H →* I) : subgroup.normal (f.ker) :=
 
 begin
 
   exact monoid_hom.normal_ker f,
 end
 
-let k ∈ φ.ker 
--- {hk : k ∈ φ.ker} 
-lemma xkxinv_in_k (i : id I)(x : H)(k ∈ φ.ker) : φ(x * k * x⁻¹) = i  :=
-begin
-
-end
-
 -- type issue...
-theorem kernel_is_normal_subgroup_of_domain (k : H) : φ.ker → H.normal :=
+theorem bleh (k : H) : φ.ker → H.normal :=
 begin
   intro K,
 end
