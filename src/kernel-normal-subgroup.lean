@@ -1,5 +1,6 @@
 import tactic
 import group_theory.subgroup.basic
+import algebra.group.hom
 
 namespace my_kernel_norm_sub
 
@@ -29,16 +30,16 @@ def kernel [group G] [group H] (f : G → H) [group_hom f] : set G :=
 --/
 
 variables {G J : Type} [group G] [group J]
-variables (H : subgroup G)
-variables (N : subgroup G)
-variables (I : subgroup J)
+variables {H : subgroup G}
+variables {N : subgroup G}
+variables {I : subgroup J}
+variable {φ : H →* I}
 
 def f : H →* H := monoid_hom.id H 
 
 #check f -- f : Π (G : Type) [_inst_1 : group G] (H : subgroup G), ↥H →* ↥H
 
 --variables {N : Type} [group N]
-variable {φ : H →* I}
 
 def K := φ.ker
 
@@ -57,9 +58,32 @@ begin
 end
 --/
 
-lemma blah (f : G →* I) : (f.ker) -> H.normal :=
+lemma x_in_kernel_is_identity (k : H)(hk : k ∈ φ.ker) : φ(k) = 1 :=
+begin
+  exact hk,
+end
+
+#check x_in_kernel_is_identity
+
+lemma foo (k : H)(hk : k ∈ φ.ker)(x : H) : φ(x * k * x⁻¹) = 1 :=
+begin
+  -- multiplication 
+  have hhom : φ(x * k * x⁻¹) = φ(x) * φ(k) * φ(x⁻¹), {
+    -- rewrite twice to get an obvious identiy
+    rw map_mul,rw map_mul,
+  },
+  -- rewrite our hypothethis
+  rw hhom,
+  -- homomorphism preseve inverses
+  rw map_inv,
+  rw x_in_kernel_is_identity k hk,
+end
+
+lemma blah (f : H →* I) : subgroup.normal (f.ker) :=
+
 begin
 
+  exact monoid_hom.normal_ker f,
 end
 
 let k ∈ φ.ker 
