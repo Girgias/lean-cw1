@@ -28,35 +28,13 @@ class group_hom [group G] [group H] (f : G → H) : Prop :=
 def kernel [group G] [group H] (f : G → H) [group_hom f] : set G :=
   preimage f (trivial H)
 --/
+--def f : H →* H := monoid_hom.id H 
 
 variables {G J : Type} [group G] [group J]
 variables {H : subgroup G}
 variables {N : subgroup G}
 variables {I : subgroup J}
 variable {φ : H →* I}
-
-def f : H →* H := monoid_hom.id H 
-
-#check f -- f : Π (G : Type) [_inst_1 : group G] (H : subgroup G), ↥H →* ↥H
-
---variables {N : Type} [group N]
-
-def K := φ.ker
-
--- TODO proving that the kernel is a normal subgroup
--- ProofWiki: https://proofwiki.org/wiki/Kernel_is_Normal_Subgroup_of_Domain
-
--- `\``trianglel`: ◃ 
-
--- We use notation `N ◃ H` to say N is a normal subgroup of H.
-notation N ` ◃ ` H := N → H.normal
-
-/--
-lemma in_k_is_identity (k : H) (i : id I) (hk: k ∈ φ.ker) : φ(k) = i :=
-begin
-  sorry,
-end
---/
 
 lemma x_in_kernel_is_identity (k : H)(hk : k ∈ φ.ker) : φ(k) = 1 :=
 begin
