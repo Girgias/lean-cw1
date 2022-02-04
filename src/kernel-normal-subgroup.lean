@@ -50,19 +50,24 @@ begin
 end
 
 theorem preimage_of_normal_subgroup_is_normal
-  {φ : G →* H} {I : subgroup H}(hn : subgroup.normal(I)) : subgroup.normal (I.comap φ) :=
+  {φ : G →* H} {I : subgroup H}(hn : subgroup.normal(I)) :
+    subgroup.normal (I.comap φ) :=
 begin
-  -- Change the goal to be the hypothethis of what a normal group is
+  -- Change the goal to be the hypothesis of what a normal group is
   apply subgroup.normal.mk,
+  -- y an element of G
   intro y,
+  -- hypothesis that y is in the preimage of φ
   intro hyInPreim,
+  -- x any element of G
   intro x,
-  --rw φ(x) * φ(y) * φ(x)⁻¹ ∈ I,
+  --Simplifies the goal from x * y * x⁻¹ ∈ subgroup.comap φ I
+  -- to φ(x) * φ(y) * φ(x)⁻¹ ∈ I,
   simp,
+  -- Apply the conjecture that the image I is a normal subgroup
   apply hn.conj_mem,
+  -- φ(y) is in the image, thus proving the claim
   exact hyInPreim,
 end
-
--- example (h : S.normal ) : (S.comap f).normal
 
 end my_kernel_norm_sub
