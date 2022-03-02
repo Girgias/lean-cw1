@@ -12,30 +12,14 @@ variables {G H : Type} [group G] [group H]
 
 --def K := φ.ker
 
-variables {S N T : subgroup G}
+variables {S N T : subgroup G} [subgroup.normal N]
 
-theorem first_iso {φ : G →* H}{I : subgroup H} : G⧸φ.ker ≃* I :=
-begin
-  split, {-- left inverse
-    sorry,},
-    {
-      -- right inverse
-      sorry,
-    }, {
-      intros x y,
-      sorry,
-      ---refine map_mul _ x y,
-      ---exact G,
-      --refine {coe := _, coe_injective' := _, map_mul := _},
-      --dsimp,
-      --intro g,
-      --intro gqk,
-      --apply I.comap φ,
-    }, {
-      by subgroup.comap φ,
-    }
-end
-
+def first_iso {φ : G →* H}{I : subgroup H} : G⧸φ.ker ≃* I :=
+{ to_fun := _,
+  inv_fun := _,
+  left_inv := _,
+  right_inv := _,
+  map_mul' := _ }
 
 --- ∩ ⊓
 
@@ -52,44 +36,90 @@ end
 #check S ⊔ N
 
 #check S.subtype
-#check @N.comap
+--#check @N.comap
 
 -- No working
 -- theorem sec_iso_again {S N : subgroup G} [N.normal]: S ⧸ S ⊓ N ≃* S ⊔ N ⧸ N :=
 
-/- φ is the natural homomorphism S →* (SN)/N. -/
-def f : S →* _ ⧸ (N.comap (S ⊔ N).subtype) := 
+/- i is the natural homomorphism S →* (SN)/N. -/
+--def i : S →* _ ⧸ (N.comap (S ⊔ N).subtype) :=
 
-
-theorem second_iso {S N : subgroup G} [N.normal]:
-S ⧸ (N.comap S.subtype) ≃* _ ⧸ (N.comap (S ⊔ N).subtype) :=
---  (mk' $ N.comap (S ⊔ N).subtype).comp (inclusion le_sup_left)
+example {S N : subgroup G} [N.normal] : S →* (S ⊔ N : subgroup G) :=
 begin
-  split, {
-    intro SqN,
-    apply id,
-    sorry,
-  }, {
-    sorry,
-  }, {
-    sorry,
-  }, {
-    -- → implication
-    sorry,
-  }, {
-    intro hs,
-    sorry,
-  },
+  refine subgroup.inclusion _,
+  show_term{ intro s },
+  show_term{intro hs},
+  show_term{exact subgroup.mem_sup_left hs},
 end
 
-instance : has_inter G :=
-{ inter := begin
-  intro g,
-  intro g,
-  exact g,
-end }
+/- i is the natural homomorphism S → (SN) -/ ∈ 
 
-lemma intersection_of_subgroup_is_subgroup {S N : subgroup G} : S∩N subgroup G :=
+-- See quotient_group.map maybe?
+def i {G} [group G] {S N : subgroup G} [N.normal] :
+  S →* (S ⊔ N : subgroup G) :=
+    subgroup.inclusion le_sup_left
+
+lemma intersection_is_subgroup {G} [group G] {S N : subgroup G} [N.normal] :
+  S.subgroup (S⧸((S ⊓ N).comap S.subtype)) 
+
+def i2 {G} [group G] {S N : subgroup G} [N.normal] :
+-- .comap S.subtype changes it to be a subgroup of G to be a subgroup of S
+  S⧸((S ⊓ N).comap S.subtype) →* (S ⊔ N : subgroup G) :=
+begin
+  refine i,
+end
+
+def i3 {G} [group G] {S N : subgroup G} [N.normal] :
+-- .comap S.subtype changes it to be a subgroup of G to be a subgroup of S
+  S⧸((S ⊓ N).comap S.subtype) →* (S ⊔ N : subgroup G)⧸(N.comap (S ⊔ N).subtype) :=
+
+/- φ is the natural homomorphism S → (SN)⧸N -/
+def φ {G} [group G] {S N : subgroup G} [N.normal] :
+  --S →* (((S ⊔ N : subgroup G))⧸N : subgroup G) :=
+  S →* _ ⧸ (N.comap (S ⊔ N).subtype) :=
+  begin
+    refine monoid_hom.restrict _ S,
+    refine mul_equiv.to_monoid_hom _,
+    refine mul_equiv.symm _,
+  end
+
+--#check quotient_group.lift i
+
+#check quotient_group.map i N
+
+#check φ '' ↑S
+#check φ ⁻¹' ↑(S ⊔ N)
+
+def f {G} [group G] {S: subgroup G} : S →* G :=
+begin
+  exact S.subtype,
+end
+def g {G} [group G] {N: subgroup G} [N.normal] : N →* G :=
+begin
+  exact N.subtype,
+end
+def h {G} [group G] {S N : subgroup G} [N.normal] : (S ⊔ N : subgroup G) →* G :=
+begin
+  refine f,
+end
+
+def second_iso {S N : subgroup G} [N.normal]:
+S ⧸ (N.comap S.subtype) ≃* _ ⧸ (N.comap (S ⊔ N).subtype) :=
+{
+  to_fun := begin
+    suggest,
+  end,
+  inv_fun := _,
+  left_inv := _,
+  right_inv := _,
+  map_mul' := _
+}
+
+
+#check S.comap S.subtype
+
+theorem third_iso_1 {S N : subgroup G} [S.normal] [N.normal] (h: N ≤ S) :
+  subgroup.normal (S.comap S.subtype)⧸N) :=
 
 -- Let R be an equivalence relation on X
 variables (R : G → (G → Prop)) (h : equivalence R)
