@@ -14,6 +14,7 @@ variables {G H : Type} [group G] [group H]
 
 variables {S N T : subgroup G} [subgroup.normal N]
 
+/-
 def first_iso {φ : G →* H}{I : subgroup H} : G⧸φ.ker ≃* I :=
 { to_fun := _,
   inv_fun := _,
@@ -21,7 +22,25 @@ def first_iso {φ : G →* H}{I : subgroup H} : G⧸φ.ker ≃* I :=
   right_inv := _,
   map_mul' := _ }
 
+-/
 --- ∩ ⊓
+
+
+/-- **Noether's second isomorphism theorem**: given two subgroups `H` and `N` of a group `G`, where
+`N` is normal, defines an isomorphism between `H/(H ∩ N)` and `(HN)/N`. -/
+@[to_additive "The second isomorphism theorem: given two subgroups `H` and `N` of a group `G`,
+where `N` is normal, defines an isomorphism between `H/(H ∩ N)` and `(H + N)/N`"]
+noncomputable def quotient_inf_equiv_prod_normal_quotient (H N : subgroup G) [N.normal] :
+  H ⧸ ((H ⊓ N).comap H.subtype) ≃* _ ⧸ (N.comap (H ⊔ N).subtype) :=
+/- φ is the natural homomorphism H →* (HN)/N. -/
+let φ : H →* _ ⧸ (N.comap (H ⊔ N).subtype) :=
+  (quotient_group.mk' $ N.comap (H ⊔ N).subtype).comp (subgroup.inclusion le_sup_left) in
+have φ_surjective : function.surjective φ :=
+  begin
+    rw function.surjective,
+    rintro ⟨y, (hy : y ∈ ↑(H ⊔ N))⟩,
+    rw subgroup.mul_normal H N at hy,
+  end,
 
 --- Quotient by doing ⧸ (not a normal slash) ∣ 
 
@@ -47,31 +66,59 @@ def first_iso {φ : G →* H}{I : subgroup H} : G⧸φ.ker ≃* I :=
 example {S N : subgroup G} [N.normal] : S →* (S ⊔ N : subgroup G) :=
 begin
   refine subgroup.inclusion _,
+  exact G,
+  exact _inst_1,
+  /-
   show_term{ intro s },
   show_term{intro hs},
   show_term{exact subgroup.mem_sup_left hs},
+  -/
 end
 
 /- i is the natural homomorphism S → (SN) -/ ∈ 
 
--- See quotient_group.map maybe?
+#check @quotient_group.mk' S ((S ⊓ N).comap S.subtype)
+
+#check quotient_group.mk' ((S ⊓ N).comap S.subtype)
+
+#check S⧸((S ⊓ N).comap S.subtype)
+
 def i {G} [group G] {S N : subgroup G} [N.normal] :
   S →* (S ⊔ N : subgroup G) :=
     subgroup.inclusion le_sup_left
 
-lemma intersection_is_subgroup {G} [group G] {S N : subgroup G} [N.normal] :
-  S.subgroup (S⧸((S ⊓ N).comap S.subtype)) 
+#check monoid_hom.comp
 
 def i2 {G} [group G] {S N : subgroup G} [N.normal] :
--- .comap S.subtype changes it to be a subgroup of G to be a subgroup of S
-  S⧸((S ⊓ N).comap S.subtype) →* (S ⊔ N : subgroup G) :=
+  S →* (S ⊔ N : subgroup G)⧸(N.comap (S ⊔ N).subtype) :=
 begin
-  refine i,
+  apply monoid_hom.comp (quotient_group.mk' (N.comap (S ⊔ N).subtype)),
+  exact i,
 end
+
+lemma i2_is_surjective {f : S →* (S ⊔ N : subgroup G)⧸(N.comap (S ⊔ N).subtype)} :
+  function.surjective f :=
+begin
+  -- rewrite def
+  rw function.surjective,
+  -- deconstruct ∀ to y is an element of the group G and the hyp as to why it's in SN
+  rintro ⟨y, (hy : y ∈ ↑(S ⊔ N))⟩,
+  -- change y ∈ ↑(S ⊔ N) to y ∈ ↑S*↑N
+  rw subgroup.mul_normal S N at hy,
+  rcases hy with ⟨s, n, hs, hn, rfl⟩,
+  use s, exact hs,
+  --apply quotient.eq.mpr,
+  --cases hy with x hx,
+  --cases f with f hidentity hxy,
+  
+end
+
+-- See quotient_group.map maybe?
 
 def i3 {G} [group G] {S N : subgroup G} [N.normal] :
 -- .comap S.subtype changes it to be a subgroup of G to be a subgroup of S
   S⧸((S ⊓ N).comap S.subtype) →* (S ⊔ N : subgroup G)⧸(N.comap (S ⊔ N).subtype) :=
+begin sorry end
 
 /- φ is the natural homomorphism S → (SN)⧸N -/
 def φ {G} [group G] {S N : subgroup G} [N.normal] :
@@ -81,6 +128,7 @@ def φ {G} [group G] {S N : subgroup G} [N.normal] :
     refine monoid_hom.restrict _ S,
     refine mul_equiv.to_monoid_hom _,
     refine mul_equiv.symm _,
+    sorry,
   end
 
 --#check quotient_group.lift i
@@ -104,7 +152,7 @@ begin
 end
 
 def second_iso {S N : subgroup G} [N.normal]:
-S ⧸ (N.comap S.subtype) ≃* _ ⧸ (N.comap (S ⊔ N).subtype) :=
+S ⧸ (N.comap S.subtype) ≃* (S ⊔ N : subgroup G) ⧸ (N.comap (S ⊔ N).subtype) :=
 {
   to_fun := begin
     suggest,
