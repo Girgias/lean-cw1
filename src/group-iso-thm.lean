@@ -1,7 +1,7 @@
 import tactic
+import data.quot
 import group_theory.quotient_group
 import group_theory.subgroup.basic
-import category_theory.isomorphism
 
 -- Proof wiki link: https://proofwiki.org/wiki/Isomorphism_Theorems
 
@@ -25,23 +25,6 @@ def first_iso {φ : G →* H}{I : subgroup H} : G⧸φ.ker ≃* I :=
 -/
 --- ∩ ⊓
 
-
-/-- **Noether's second isomorphism theorem**: given two subgroups `H` and `N` of a group `G`, where
-`N` is normal, defines an isomorphism between `H/(H ∩ N)` and `(HN)/N`. -/
-@[to_additive "The second isomorphism theorem: given two subgroups `H` and `N` of a group `G`,
-where `N` is normal, defines an isomorphism between `H/(H ∩ N)` and `(H + N)/N`"]
-noncomputable def quotient_inf_equiv_prod_normal_quotient (H N : subgroup G) [N.normal] :
-  H ⧸ ((H ⊓ N).comap H.subtype) ≃* _ ⧸ (N.comap (H ⊔ N).subtype) :=
-/- φ is the natural homomorphism H →* (HN)/N. -/
-let φ : H →* _ ⧸ (N.comap (H ⊔ N).subtype) :=
-  (quotient_group.mk' $ N.comap (H ⊔ N).subtype).comp (subgroup.inclusion le_sup_left) in
-have φ_surjective : function.surjective φ :=
-  begin
-    rw function.surjective,
-    rintro ⟨y, (hy : y ∈ ↑(H ⊔ N))⟩,
-    rw subgroup.mul_normal H N at hy,
-  end,
-
 --- Quotient by doing ⧸ (not a normal slash) ∣ 
 
 
@@ -49,7 +32,7 @@ have φ_surjective : function.surjective φ :=
 
 -- Given by Kevin try to understand def
  --S/S∩N ≅ SN/N :=
-#check @subgroup.comap
+#check subgroup.comap
 -- S ⊔ N is the smallest subgroup of G containing S and N.
 -- Which corresponds to SN
 #check S ⊔ N
@@ -66,16 +49,14 @@ have φ_surjective : function.surjective φ :=
 example {S N : subgroup G} [N.normal] : S →* (S ⊔ N : subgroup G) :=
 begin
   refine subgroup.inclusion _,
-  exact G,
-  exact _inst_1,
-  /-
-  show_term{ intro s },
-  show_term{intro hs},
-  show_term{exact subgroup.mem_sup_left hs},
-  -/
+  intro s,
+  intro hs,
+  exact subgroup.mem_sup_left hs,
 end
 
-/- i is the natural homomorphism S → (SN) -/ ∈ 
+example 
+
+/- i is the natural homomorphism S → (SN) -/
 
 #check @quotient_group.mk' S ((S ⊓ N).comap S.subtype)
 
@@ -96,21 +77,35 @@ begin
   exact i,
 end
 
+--#check (S⧸((S ⊓ N).comap S.subtype)).lift i2
+#check quotient_group.lift _ _ _ _ 
+
+def i3 {G} [group G] {S N : subgroup G} [N.normal] :
+  (S⧸((S ⊓ N).comap S.subtype)) →* (S ⊔ N : subgroup G)⧸(N.comap (S ⊔ N).subtype) :=
+begin
+  apply quotient_group.lift i2 _,
+end
+
 lemma i2_is_surjective {f : S →* (S ⊔ N : subgroup G)⧸(N.comap (S ⊔ N).subtype)} :
-  function.surjective f :=
+  function.surjective f := -- λ x, x.induction_on' $
 begin
   -- rewrite def
-  rw function.surjective,
+  --rw function.surjective,
   -- deconstruct ∀ to y is an element of the group G and the hyp as to why it's in SN
   rintro ⟨y, (hy : y ∈ ↑(S ⊔ N))⟩,
   -- change y ∈ ↑(S ⊔ N) to y ∈ ↑S*↑N
   rw subgroup.mul_normal S N at hy,
   rcases hy with ⟨s, n, hs, hn, rfl⟩,
-  use s, exact hs,
+  -- Why need the square brackets?
+  use [s, hs],
+  --apply quotient,
+  --apply quot.induction_on hs,
+  --WHY IS THIS NOT WORKING
   --apply quotient.eq.mpr,
+  --change s⁻¹ * (s * n) ∈ N,
   --cases hy with x hx,
   --cases f with f hidentity hxy,
-  
+  sorry,
 end
 
 -- See quotient_group.map maybe?
