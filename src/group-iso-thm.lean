@@ -54,9 +54,14 @@ begin
   exact subgroup.mem_sup_left hs,
 end
 
-example 
-
 /- i is the natural homomorphism S → (SN) -/
+example {S N : subgroup G} [N.normal] : S →* (S ⊔ N : subgroup G) :=
+begin
+  refine subgroup.inclusion _,
+  intro s,
+  intro hs,
+  exact subgroup.mem_sup_left hs,
+end
 
 #check @quotient_group.mk' S ((S ⊓ N).comap S.subtype)
 
@@ -70,24 +75,26 @@ def i {G} [group G] {S N : subgroup G} [N.normal] :
 
 #check monoid_hom.comp
 
-def i2 {G} [group G] {S N : subgroup G} [N.normal] :
+def i2 {G} [group G] (S N : subgroup G) [N.normal] :
   S →* (S ⊔ N : subgroup G)⧸(N.comap (S ⊔ N).subtype) :=
 begin
   apply monoid_hom.comp (quotient_group.mk' (N.comap (S ⊔ N).subtype)),
   exact i,
 end
 
---#check (S⧸((S ⊓ N).comap S.subtype)).lift i2
-#check quotient_group.lift _ _ _ _ 
+--#check (S ⧸ (N.comap S.subtype)).lift i2
+#check quotient_group.lift (N.comap S.subtype) (i2 S N)
 
 def i3 {G} [group G] {S N : subgroup G} [N.normal] :
-  (S⧸((S ⊓ N).comap S.subtype)) →* (S ⊔ N : subgroup G)⧸(N.comap (S ⊔ N).subtype) :=
+--  (S⧸((S ⊓ N).comap S.subtype)) →* (S ⊔ N : subgroup G)⧸(N.comap (S ⊔ N).subtype) :=
+  (S ⧸ (N.comap S.subtype)) →* (S ⊔ N : subgroup G)⧸(N.comap (S ⊔ N).subtype) :=
 begin
-  apply quotient_group.lift i2 _,
+  apply quotient_group.lift (N.comap S.subtype) (i2 S N),
+  -- TODO
+  sorry,
 end
 
-lemma i2_is_surjective {f : S →* (S ⊔ N : subgroup G)⧸(N.comap (S ⊔ N).subtype)} :
-  function.surjective f := -- λ x, x.induction_on' $
+lemma i2_is_surjective : function.surjective (i2 S N) :=
 begin
   -- rewrite def
   --rw function.surjective,
@@ -97,20 +104,21 @@ begin
   rw subgroup.mul_normal S N at hy,
   rcases hy with ⟨s, n, hs, hn, rfl⟩,
   -- Why need the square brackets?
-  use [s, hs],
-  --apply quotient,
-  --apply quot.induction_on hs,
-  --WHY IS THIS NOT WORKING
-  --apply quotient.eq.mpr,
-  --change s⁻¹ * (s * n) ∈ N,
-  --cases hy with x hx,
-  --cases f with f hidentity hxy,
-  sorry,
+  --use [s, hs],
+  use s,
+  exact hs,
+  -- not sure what this does
+  apply quotient.eq.mpr,
+  change s⁻¹ * (s * n) ∈ N,
+  rw ← mul_assoc,
+  rw inv_mul_self,
+  rw one_mul,
+  exact hn,
 end
 
 -- See quotient_group.map maybe?
 
-def i3 {G} [group G] {S N : subgroup G} [N.normal] :
+def i4 {G} [group G] {S N : subgroup G} [N.normal] :
 -- .comap S.subtype changes it to be a subgroup of G to be a subgroup of S
   S⧸((S ⊓ N).comap S.subtype) →* (S ⊔ N : subgroup G)⧸(N.comap (S ⊔ N).subtype) :=
 begin sorry end
