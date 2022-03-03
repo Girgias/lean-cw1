@@ -85,15 +85,6 @@ end
 --#check (S ⧸ (N.comap S.subtype)).lift i2
 #check quotient_group.lift (N.comap S.subtype) (i2 S N)
 
-def i3 {G} [group G] {S N : subgroup G} [N.normal] :
---  (S⧸((S ⊓ N).comap S.subtype)) →* (S ⊔ N : subgroup G)⧸(N.comap (S ⊔ N).subtype) :=
-  (S ⧸ (N.comap S.subtype)) →* (S ⊔ N : subgroup G)⧸(N.comap (S ⊔ N).subtype) :=
-begin
-  apply quotient_group.lift (N.comap S.subtype) (i2 S N),
-  -- TODO
-  sorry,
-end
-
 lemma i2_is_surjective : function.surjective (i2 S N) :=
 begin
   -- rewrite def
@@ -114,6 +105,20 @@ begin
   rw inv_mul_self,
   rw one_mul,
   exact hn,
+end
+
+--
+--  (S⧸((S ⊓ N).comap S.subtype)) →* (S ⊔ N : subgroup G)⧸(N.comap (S ⊔ N).subtype) :=
+def i3 {G} [group G] {S N : subgroup G} [N.normal] :
+  (S ⧸ (N.comap S.subtype)) →* (S ⊔ N : subgroup G)⧸(N.comap (S ⊔ N).subtype) :=
+begin
+  apply quotient_group.lift (N.comap S.subtype) (i2 S N),
+  intro s,
+  intro hs,
+  simp at hs,
+  dsimp [i2],
+  simp,
+  exact hs,
 end
 
 -- See quotient_group.map maybe?
