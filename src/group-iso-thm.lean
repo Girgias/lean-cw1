@@ -23,10 +23,6 @@ def first_iso {φ : G →* H}{I : subgroup H} : G⧸φ.ker ≃* I :=
   map_mul' := _ }
 
 -/
---- ∩ ⊓
-
---- Quotient by doing ⧸ (not a normal slash) ∣ 
-
 
 --def S ⊓ N : subgroup G
 
@@ -37,23 +33,6 @@ def first_iso {φ : G →* H}{I : subgroup H} : G⧸φ.ker ≃* I :=
 -- Which corresponds to SN
 #check S ⊔ N
 
-#check S.subtype
---#check @N.comap
-
--- No working
--- theorem sec_iso_again {S N : subgroup G} [N.normal]: S ⧸ S ⊓ N ≃* S ⊔ N ⧸ N :=
-
-/- i is the natural homomorphism S →* (SN)/N. -/
---def i : S →* _ ⧸ (N.comap (S ⊔ N).subtype) :=
-
-example {S N : subgroup G} [N.normal] : S →* (S ⊔ N : subgroup G) :=
-begin
-  refine subgroup.inclusion _,
-  intro s,
-  intro hs,
-  exact subgroup.mem_sup_left hs,
-end
-
 /- i is the natural homomorphism S → (SN) -/
 example {S N : subgroup G} [N.normal] : S →* (S ⊔ N : subgroup G) :=
 begin
@@ -62,8 +41,6 @@ begin
   intro hs,
   exact subgroup.mem_sup_left hs,
 end
-
-#check @quotient_group.mk' S ((S ⊓ N).comap S.subtype)
 
 #check quotient_group.mk' ((S ⊓ N).comap S.subtype)
 
@@ -109,42 +86,68 @@ end
 
 --
 --  (S⧸((S ⊓ N).comap S.subtype)) →* (S ⊔ N : subgroup G)⧸(N.comap (S ⊔ N).subtype) :=
-def i3 {G} [group G] {S N : subgroup G} [N.normal] :
+def i3 {G} [group G] (S N : subgroup G) [N.normal] :
   (S ⧸ (N.comap S.subtype)) →* (S ⊔ N : subgroup G)⧸(N.comap (S ⊔ N).subtype) :=
 begin
   apply quotient_group.lift (N.comap S.subtype) (i2 S N),
   intro s,
   intro hs,
-  simp at hs,
+  rw subgroup.mem_comap at hs,
+  rw subgroup.coe_subtype at hs,
   dsimp [i2],
-  simp,
+  rw quotient_group.eq_one_iff,
+  rw subgroup.mem_comap,
+  rw subgroup.coe_subtype,
   exact hs,
 end
 
--- See quotient_group.map maybe?
+#check quotient_group.quotient_ker_equiv_of_surjective (i3 S N)
+
+lemma i3_is_bijective : function.bijective (i3 S N) :=
+begin
+  --refine function.bijective_iff_has_inverse.mpr _,
+  rw function.bijective,
+  split, {
+    -- proof function is injective
+    rw function.injective,
+    intros x y,
+    dsimp[i3],
+    intro h,
+    --rw subgroup.mem_comap at h,
+    --rw subgroup.coe_subtype at h,
+    apply quotient.induction_on₂ x y,
+    sorry,
+  }, {
+    -- proof function is surjective
+    rw function.surjective,
+    --rintro ⟨y, (hy : y ∈ (S ⊔ N : subgroup G))⟩,
+    --have hys : y ∈ S, 
+    intro y,
+    dsimp[i3],
+    sorry,
+  },
+end
+
+def second_iso (S N : subgroup G) [N.normal]:
+  S ⧸ (N.comap S.subtype) ≃* (S ⊔ N : subgroup G) ⧸ (N.comap (S ⊔ N).subtype) :=
+{
+  to_fun := (i3 S N),
+  inv_fun := _,
+  left_inv := _,
+  right_inv := _,
+  map_mul' := _
+}
+
+#check quotient_group.map (N.comap S.subtype) (N.comap (S⊔N).subtype) i
 
 def i4 {G} [group G] {S N : subgroup G} [N.normal] :
 -- .comap S.subtype changes it to be a subgroup of G to be a subgroup of S
   S⧸((S ⊓ N).comap S.subtype) →* (S ⊔ N : subgroup G)⧸(N.comap (S ⊔ N).subtype) :=
 begin sorry end
 
-/- φ is the natural homomorphism S → (SN)⧸N -/
-def φ {G} [group G] {S N : subgroup G} [N.normal] :
-  --S →* (((S ⊔ N : subgroup G))⧸N : subgroup G) :=
-  S →* _ ⧸ (N.comap (S ⊔ N).subtype) :=
-  begin
-    refine monoid_hom.restrict _ S,
-    refine mul_equiv.to_monoid_hom _,
-    refine mul_equiv.symm _,
-    sorry,
-  end
 
---#check quotient_group.lift i
-
-#check quotient_group.map i N
-
-#check φ '' ↑S
-#check φ ⁻¹' ↑(S ⊔ N)
+#check i '' ↑S
+#check i ⁻¹' ↑(S ⊔ N)
 
 def f {G} [group G] {S: subgroup G} : S →* G :=
 begin
@@ -159,57 +162,9 @@ begin
   refine f,
 end
 
-def second_iso {S N : subgroup G} [N.normal]:
-S ⧸ (N.comap S.subtype) ≃* (S ⊔ N : subgroup G) ⧸ (N.comap (S ⊔ N).subtype) :=
-{
-  to_fun := begin
-    suggest,
-  end,
-  inv_fun := _,
-  left_inv := _,
-  right_inv := _,
-  map_mul' := _
-}
-
-
 #check S.comap S.subtype
 
 theorem third_iso_1 {S N : subgroup G} [S.normal] [N.normal] (h: N ≤ S) :
-  subgroup.normal (S.comap S.subtype)⧸N) :=
-
--- Let R be an equivalence relation on X
-variables (R : G → (G → Prop)) (h : equivalence R)
-
-def s : setoid G := {r := R, iseqv := h }
-
--- how does Lean make the set Y such that f:X→Y is a surjection
--- and f(x₁) = f(x₂) ↔ R(x₁,x₂)
-
-
-#check @quotient G
-#check (s R h)
-
-
-def N := @quotient G (s R h)
-def S := @quotient G (s R h)
-
-
-
-#check @quot.mk G
-
-#check @K
-/-
-K : Π {G H : Type} [_inst_1 : group G] [_inst_2 : group H] {φ : G →* H}, 
-  subgroup G
--/
-/-
-lemma theta_well_defined : :=
-begin
-end
--/
-
-
-
---#check Y X R h
+  subgroup.normal ((S.comap S.subtype)⧸(N.comap S.subtype)) := sorry
 
 end my_group_iso
