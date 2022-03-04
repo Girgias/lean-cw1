@@ -6,7 +6,7 @@ namespace my_group_iso
 
 variables {G : Type} [group G]
 
-/-- f is the natural embeding of S in SN -/
+/-- f is the natural embedding of S in SN -/
 def f {G : Type} [group G] {S N : subgroup G} [N.normal] :
   S →* (S ⊔ N : subgroup G) :=
     subgroup.inclusion le_sup_left
@@ -19,12 +19,13 @@ def g {G : Type} [group G] (S N : subgroup G) [N.normal] :
 
 /-- The group homomorphism g: S → SN⧸N is surjective
   The proof is based on the one from mathlib -/
-lemma g_is_surjective {S N : subgroup G} [N.normal] : function.surjective (g S N) :=
+lemma g_is_surjective {S N : subgroup G} [N.normal] :
+  function.surjective (g S N) :=
 begin
   rw function.surjective,
   -- deconstruct ∀
   -- · y : G
-  -- · hypothethis y ∈ SN
+  -- · hypothesis y ∈ SN
   rintro ⟨y, (hy : y ∈ ↑(S ⊔ N))⟩,
   -- As N normal, y ∈ (S ⊔ N) means y ∈ S*N
   rw subgroup.mul_normal S N at hy,
@@ -33,11 +34,11 @@ begin
   -- s*n = y
   -- rfl changes instances of y to s*n
   rcases hy with ⟨s, n, hs, hn, rfl⟩,
-  -- 
   use s,
   exact hs,
-  -- Change to the equivalence relation of the quotient
+  -- Pullback on the quotient map and move from g(s) to f(s)
   apply quotient.eq.mpr,
+  -- I do not totally understand why it is definitionally equivalent to
   change s⁻¹ * (s * n) ∈ N,
   -- Rebracket
   rw ← mul_assoc,
@@ -53,23 +54,26 @@ lemma g_ker_eq_S_intersect_N (S N : subgroup G) [N.normal] :
   ((g S N).ker : subgroup S) = (N.comap S.subtype) :=
 begin
   ext,
+  simp,
   split, {
     -- ker(g) ⊆ S∩N
-    simp,
     -- x ∈ ker(g)
     intro hxk,
-    -- Being in the kernel is definitionaly equal to sending an element to the identity
+    -- Being in the kernel is definitionally equal to sending an element
+    -- to the identity
     change (g S N) x = 1 at hxk,
+    -- Simplify g(x) = 1 to f(x) = 1
     dsimp [g] at hxk,
     simp at hxk,
     exact hxk,
   }, {
     -- S∩N ⊆ ker(g)
-    simp,
     -- hx : x ∈ N
     intro hx,
-    -- Being in the kernel is definitionaly equal to sending an element to the identity
+    -- Being in the kernel is definitionally equal to sending an element
+    -- to the identity
     change (g S N) x = 1,
+    -- Simplify g(x) = 1 to f(x) = 1
     dsimp [g],
     simp,
     exact hx,
@@ -93,8 +97,5 @@ begin
   -- Transitivity of isomorphisms
   exact mul_equiv.trans h e1,
 end
-
-variables {S N : subgroup G} [subgroup.normal N]
-#check function.surjective (g S N)
 
 end my_group_iso
