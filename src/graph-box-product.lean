@@ -281,8 +281,8 @@ end
 --- `simple_graph.walk.to_path` MEMO
 #check @simple_graph.walk.to_path
 
-lemma descend_adj_lhs {V W : Type} {a b : V} (w : W) {G : simple_graph V}
-  {H : simple_graph W} :
+lemma descend_adj_lhs {V W : Type} {a b : V} (w : W) (G : simple_graph V)
+  (H : simple_graph W) :
   (G□H).adj (a, w) (b, w) → G.adj a b :=
 begin
   rw box_adj_rel,
@@ -387,16 +387,32 @@ def decend_walk_lhs_prod {V W : Type} (G : simple_graph V) (H : simple_graph W)
 end
 --walk.cons (descend_adj_lhs h) (decend_walk_lhs p)
 
+-- TODO Pass hypo that there exist a path in G□H
 def decend_walk_lhs {V W : Type} {G : simple_graph V} {H : simple_graph W}
-  : Π {a b : V} {w : W},
+  (w : W) (hc : (G□H).is_connected)
+  : Π {a b : V},
   (G□H).walk (a, w) (b, w) → (G.walk a b)
-| _ _ _ simple_graph.walk.nil := walk.nil
-| a b w (simple_graph.walk.cons h p) := begin
-
-    set f:= descend_adj_lhs_prod he h,
-    set wd:= decend_walk_lhs_prod p,
+| _ _ simple_graph.walk.nil := walk.nil
+| a b (@simple_graph.walk.cons _ _ _ c _ h p) :=
+begin
+  by_cases he: w = c.snd, {
+    have heq : (c.fst, w) = c := prod.ext rfl he,
+    set cd := (c.fst, w),
+    rw ← heq at h,
+    rw ← heq at p,
+    set f:= descend_adj_lhs w G H h,
+    set wd:= decend_walk_lhs p,
     set w := walk.cons f wd,
     exact w,
+  }, {
+    cases hc with _ hp,
+    set x := (a, w),
+    specialize hp x c,
+    set p2 := hp.some,
+    set walk := walk.append p2 p,
+    set d := decend_walk_lhs walk,
+    exact d,
+  }
 end
 
 lemma G_and_H_connected_if_G_box_H_connected {V W : Type} (G : simple_graph V)
