@@ -7,8 +7,7 @@ namespace simple_graph
 
 -- Stolen from sheet 12 of the lecture notes
 def is_connected {V : Type} (G : simple_graph V) : Prop :=
---nonempty V ∧ ∀ u v : V, ∃ p : G.walk u v, p.is_path
-∀ u v : V, ∃ p : G.walk u v, p.is_path
+nonempty V ∧ ∀ u v : V, ∃ p : G.walk u v, p.is_path
 
 namespace box_product
 
@@ -203,9 +202,8 @@ lemma lift_adj_lhs {V W : Type} {a b : V} {w : W} {G : simple_graph V} {H : simp
 begin
   intro h,
   left,
-  split,
-  {triv,},
-  {exact h},
+  simp only [eq_self_iff_true, true_and],
+  exact h,
 end
 
 lemma lift_adj_rhs {V W : Type} {v : V} {a b : W} {G : simple_graph V} {H : simple_graph W} :
@@ -213,9 +211,8 @@ lemma lift_adj_rhs {V W : Type} {v : V} {a b : W} {G : simple_graph V} {H : simp
 begin
   intro h,
   right,
-  split,
-  {triv,},
-  {exact h},
+  simp only [eq_self_iff_true, true_and],
+  exact h,
 end
 
 -- Kevin helped with writting the inductive type here
@@ -237,33 +234,48 @@ lemma G_box_H_is_connected_if_G_H_connected {V W : Type} (G : simple_graph V) (H
   G.is_connected ∧ H.is_connected → (G□H).is_connected :=
 begin
   intro h,
-  cases h with hg hh,
+  cases h with hG_connected hH_connected,
   rw is_connected at *,
-  intros a b,
-  set g1 := a.1,
-  set h1 := a.2,
-  set g2 := b.1,
-  set h2 := b.2,
-  specialize hg g1 g2,
-  specialize hh h1 h2,
-  cases hg with pg hpg,
-  cases hh with ph hph,
-  set wg := lift_walk_lhs h1 G H pg,
-  set wh := lift_walk_rhs g2 G H ph,
-  set w := walk.append wg wh,
-  --simp only,
-  have eq1 : a = (g1, h1),
-  { simp, },
-  have eq2 : b = (g2, h2),
-  { simp, },
-  rw ← eq1 at w,
-  rw ← eq2 at w,
-  -- Fix decidability
-  classical,
-  set p := (simple_graph.walk.to_path w),
-  use p,
-  -- p.2 is the field which has the proof that p is a path
-  exact p.2,
+  cases hG_connected with hG_not_empty hg,
+  cases hH_connected with hH_not_empty hh,
+  split,
+  {
+    rw nonempty_prod,
+    exact ⟨hG_not_empty, hH_not_empty⟩,
+  }, {
+    intros a b,
+    set g1 := a.1,
+    set h1 := a.2,
+    set g2 := b.1,
+    set h2 := b.2,
+    -- ∃ a path from g₁ to g₂
+    specialize hg g1 g2,
+    -- ∃ a path from h₁ to h₂
+    specialize hh h1 h2,
+    -- extract the walks
+    cases hg with pg _,
+    cases hh with ph _,
+    -- lift the walk in G along the vertex h₁
+    set wg := lift_walk_lhs h1 G H pg,
+    -- lift the walk in H along the vertex g₂
+    set wh := lift_walk_rhs g2 G H ph,
+    -- Get a walk from (g₁, h₁) to (g₂, h₂)
+    set w := walk.append wg wh,
+    -- Helpers for Lean to understand that the walk is actually in V×W
+    have eq1 : a = (g1, h1),
+    { simp only [prod.mk.eta], },
+    have eq2 : b = (g2, h2),
+    { simp only [prod.mk.eta], },
+    rw ← eq1 at w,
+    rw ← eq2 at w,
+    -- Fix decidability
+    classical,
+    -- Create a path from the walk
+    set p := (simple_graph.walk.to_path w),
+    use p,
+    -- p.2 is the field which has the proof that p is a path
+    exact p.2,
+  }
 end
 
 --- `simple_graph.walk.to_path` MEMO
@@ -391,23 +403,32 @@ lemma G_and_H_connected_if_G_box_H_connected {V W : Type} (G : simple_graph V)
   (H : simple_graph W) :
   (G□H).is_connected → G.is_connected ∧ H.is_connected :=
 begin
-  rewrite is_connected,
-  rewrite is_connected,
-  rewrite is_connected,
-  intros hGH,
-  
-  split,
-  {
-    intros g1 g2,
-    let h : W, sorry,
-    specialize hGH (g1, h) (g2, h),
-    cases hGH with w hp,
-    sorry,
+  intros hGH_connected,
+  cases hGH_connected with hGH_not_empty hGH_has_path,
+  rw nonempty_prod at hGH_not_empty,
+  cases hGH_not_empty with hG_not_empty hH_not_empty,
+  split, {
+    -- G is connected
+    split, {
+      exact hG_not_empty,
+    }, {
+      -- G has a path for all g₁ g2
+      intros g1 g2,
+      set h := hH_not_empty.some,
+      specialize hGH_has_path (g1, h) (g2, h),
+      sorry,
+    },
+  }, {
+    split, {
+      exact hH_not_empty,
+    }, {
+      -- H has a path for all h₁ h2
+      intros h1 h2,
+      set g := hG_not_empty.some,
+      specialize hGH_has_path (g, h1) (g, h2),
+      sorry,
+    },
   },
-  {
-
-    sorry,
-  }
 end
 
 theorem G_box_H_is_connected_iff_G_H_connected {V W : Type} (G : simple_graph V) (H : simple_graph W) :
@@ -415,7 +436,7 @@ theorem G_box_H_is_connected_iff_G_H_connected {V W : Type} (G : simple_graph V)
 begin
   split,
   { exact G_box_H_is_connected_if_G_H_connected G H, },
-  { sorry, },
+  { exact G_and_H_connected_if_G_box_H_connected G H, },
 end
 
 
