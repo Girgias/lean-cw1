@@ -9,6 +9,17 @@ namespace simple_graph
 def is_connected {V : Type} (G : simple_graph V) : Prop :=
 nonempty V ∧ ∀ u v : V, ∃ p : G.walk u v, p.is_path
 
+def walk_eq {V : Type} {G : simple_graph V} :
+  Π {a b c : V} (he : a = b) (p : G.walk a c), G.walk b c
+| a b c h simple_graph.walk.nil := walk.nil
+| a b _ _ (@simple_graph.walk.cons fff ggg tttt c oooo h p) := begin
+end
+
+lemma walk_id_eq {V : Type} {a b c : V} {G : simple_graph V} (he : a = b) (p : G.walk a c) :
+  G.walk b c := begin
+    rw he at p, exact p,
+end
+
 namespace box_product
 
 /--
@@ -88,7 +99,7 @@ begin
   refl,
 end
 
-theorem box_product_comm {V W : Type} (G : simple_graph V) (H : simple_graph W) :
+def box_product_comm {V W : Type} (G : simple_graph V) (H : simple_graph W) :
   G□H ≃g (H□G) :=
 {
 to_equiv := equiv.prod_comm V W,
@@ -119,14 +130,14 @@ map_rel_iff' := begin
 end,
 }
 
-theorem box_product_assoc {U V W : Type} (G : simple_graph U)
+def box_product_assoc {U V W : Type} (G : simple_graph U)
   (H : simple_graph V) (K : simple_graph W) :
-  ((G□H)□K) ≃g (G□(H□K)) :=
+  ((G□H)□K) ≃g (G□(H□K)) := 
 {
   to_equiv := equiv.prod_assoc U V W,
   map_rel_iff' := begin
     intros a b,
-    simp,
+    rw equiv.prod_assoc_apply,
     split,
     rw box_adj_rel_prod,
     {
@@ -188,7 +199,7 @@ theorem box_product_assoc {U V W : Type} (G : simple_graph U)
         cases rhs with eq hKadj,
         rw eq,
         right,
-        simp,
+        squeeze_simp,
         right,
         simp,
         exact hKadj,
@@ -243,11 +254,7 @@ begin
     rw nonempty_prod,
     exact ⟨hG_not_empty, hH_not_empty⟩,
   }, {
-    intros a b,
-    set g1 := a.1,
-    set h1 := a.2,
-    set g2 := b.1,
-    set h2 := b.2,
+    rintros ⟨g1, h1⟩ ⟨g2, h2⟩,
     -- ∃ a path from g₁ to g₂
     specialize hg g1 g2,
     -- ∃ a path from h₁ to h₂
@@ -261,13 +268,6 @@ begin
     set wh := lift_walk_rhs g2 G H ph,
     -- Get a walk from (g₁, h₁) to (g₂, h₂)
     set w := walk.append wg wh,
-    -- Helpers for Lean to understand that the walk is actually in V×W
-    have eq1 : a = (g1, h1),
-    { simp only [prod.mk.eta], },
-    have eq2 : b = (g2, h2),
-    { simp only [prod.mk.eta], },
-    rw ← eq1 at w,
-    rw ← eq2 at w,
     -- Fix decidability
     classical,
     -- Create a path from the walk
@@ -387,33 +387,72 @@ def decend_walk_lhs_prod {V W : Type} (G : simple_graph V) (H : simple_graph W)
 end
 --walk.cons (descend_adj_lhs h) (decend_walk_lhs p)
 
+-- Thanks Kenny
+def descend_walk_lhs {V W : Type} [decidable_eq V] [decidable_eq W]
+  {G : simple_graph V} {H : simple_graph W} [decidable_rel G.adj] [decidable_rel H.adj]
+  : Π {vw1 vw2 : V × W},
+  (G□H).walk vw1 vw2 → (G.walk vw1.1 vw2.1)
+| _ _ simple_graph.walk.nil := walk.nil
+| vw1 vw3 (@simple_graph.walk.cons _ _ _ vw2 _ h p) :=
+or.by_cases h (λ h1, walk.cons h1.2 (descend_walk_lhs p))
+  (λ h2, show G.walk vw1.1 vw3.1, by rw h2.1; exact descend_walk_lhs p)
+
+
+#exit
 -- TODO Pass hypo that there exist a path in G□H
-def decend_walk_lhs {V W : Type} {G : simple_graph V} {H : simple_graph W}
+/-
+noncomputable def descend_walk_lhs_random {V W : Type} [decidable_eq W] {G : simple_graph V} {H : simple_graph W}
   (w : W) (hc : (G□H).is_connected)
   : Π {a b : V},
   (G□H).walk (a, w) (b, w) → (G.walk a b)
 | _ _ simple_graph.walk.nil := walk.nil
 | a b (@simple_graph.walk.cons _ _ _ c _ h p) :=
-begin
-  by_cases he: w = c.snd, {
-    have heq : (c.fst, w) = c := prod.ext rfl he,
-    set cd := (c.fst, w),
-    rw ← heq at h,
-    rw ← heq at p,
-    set f:= descend_adj_lhs w G H h,
-    set wd:= decend_walk_lhs p,
-    set w := walk.cons f wd,
-    exact w,
-  }, {
-    cases hc with _ hp,
-    set x := (a, w),
-    specialize hp x c,
-    set p2 := hp.some,
-    set walk := walk.append p2 p,
-    set d := decend_walk_lhs walk,
-    exact d,
-  }
-end
+if he: w = c.2 then
+  walk.cons 
+    (descend_adj_lhs w G H (begin
+      unfold box_product at h,
+      rw ← he at h, exact h,
+    end : (G□H).adj (a, w) (c.1, w)))
+    (descend_walk_lhs (begin
+      rw ← he at p, exact p,
+    end : (G□H).walk (c1, w) (b, w)))
+else
+  descend_walk_lhs (walk.append (hc.2 (a, w) (c1, c2)).some p)
+-/
+
+/-
+def descend_walk_lhs2 {V W : Type} {G : simple_graph V}
+  {H : simple_graph W} (x : W) (y : W) (hc : (G□H).is_connected) :
+  Π {a b : V}, (G□H).walk (a, x) (b, y) → (G.walk a b)
+| _ _ simple_graph.walk.nil := walk.nil
+| a b (@simple_graph.walk.cons _ _ _ (c1, c2) _ h p) :=
+if he: x = c2 then
+  walk.cons 
+    (descend_adj_lhs x G H (begin
+      rw ← he at h, exact h,
+    end : (G□H).adj (a, x) (c1, x)))
+    (descend_walk_lhs2 (begin
+      rw ← he at p, exact p,
+    end : (G□H).walk (c1, x) (b, y)))
+else
+  descend_walk_lhs2 p
+-/
+
+/-
+lemma project_box_product_to_G {V W : Type} (G : simple_graph V)
+  (H : simple_graph W) : (G□H) →g G :=
+{
+  to_fun := λ x, x.1,
+  map_rel' := begin
+    intros a b hBadj,
+    cases hBadj with Gem Hem,
+    { exact Gem.2, },
+    {
+      
+    },
+  end
+}
+-/
 
 lemma G_and_H_connected_if_G_box_H_connected {V W : Type} (G : simple_graph V)
   (H : simple_graph W) :
