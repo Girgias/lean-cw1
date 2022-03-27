@@ -9,12 +9,6 @@ namespace simple_graph
 def is_connected {V : Type} (G : simple_graph V) : Prop :=
 nonempty V ∧ ∀ u v : V, ∃ p : G.walk u v, p.is_path
 
-def walk_eq {V : Type} {G : simple_graph V} :
-  Π {a b c : V} (he : a = b) (p : G.walk a c), G.walk b c
-| a b c h simple_graph.walk.nil := walk.nil
-| a b _ _ (@simple_graph.walk.cons fff ggg tttt c oooo h p) := begin
-end
-
 lemma walk_id_eq {V : Type} {a b c : V} {G : simple_graph V} (he : a = b) (p : G.walk a c) :
   G.walk b c := begin
     rw he at p, exact p,
@@ -66,32 +60,31 @@ of two graphs.
 -/
 infix `□`:50 := box_product
 
+def is_box_product {V W : Type} (B : simple_graph (V × W)) (G : simple_graph V) (H : simple_graph W) : Prop :=
+  ∀ x y : V×W, B.adj x y ↔ ((x.2=y.2 ∧ G.adj x.1 y.1) ∨ (x.1=y.1 ∧ H.adj x.2 y.2))
+
+lemma box_product_is_box_product {V W : Type} (G : simple_graph V) (H : simple_graph W) :
+  is_box_product (G□H) G H :=
+begin
+  intros x y,
+  refl,
+end
+
+/-- The adjacency relation of the box product when vetices are in terms of V and W -/
 lemma box_adj_rel {V W : Type} {a b : V} {x y : W} {G : simple_graph V} {H : simple_graph W} :
   (G□H).adj (a, x) (b, y) ↔ (x = y ∧ G.adj a b) ∨ (a = b ∧ H.adj x y) :=
 begin
   refl,
 end
 
+/-- The adjacency relation of the box product when vetices are in terms of V×W -/
 lemma box_adj_rel_prod {V W : Type} {a b : V×W} {G : simple_graph V} {H : simple_graph W} :
   (G□H).adj a b ↔ (a.snd = b.snd ∧ G.adj a.fst b.fst) ∨ (a.fst = b.fst ∧ H.adj a.snd b.snd) :=
 begin
   refl,
 end
 
-lemma box_adj_rels_equiv_extra {V W : Type} {a b : V} {x y : W} {g h : V×W}
-  {G : simple_graph V} {H : simple_graph W} :
-  ((G□H).adj (a, x) (b, y) ↔ (x = y ∧ G.adj a b) ∨ (a = b ∧ H.adj x y)) ↔
-  ((G□H).adj g h ↔ (g.snd = h.snd ∧ G.adj g.fst h.fst) ∨ (g.fst = h.fst ∧ H.adj g.snd h.snd)) :=
-begin
-  split, {
-    intro _,
-    rw box_adj_rel_prod,
-  }, {
-    intro _,
-    rw box_adj_rel,
-  },
-end
-
+/-- Proof that the two different agency relations are equivalent -/
 lemma box_adj_rels_equiv {V W : Type} {v w : V×W}
   {G : simple_graph V} {H : simple_graph W} :
   (G□H).adj (v.fst, v.snd) (w.fst, w.snd) ↔ (G□H).adj v w :=
@@ -99,6 +92,7 @@ begin
   refl,
 end
 
+/-- The box product is commutative up to isomorphism -/
 def box_product_comm {V W : Type} (G : simple_graph V) (H : simple_graph W) :
   G□H ≃g (H□G) :=
 {
@@ -106,30 +100,29 @@ to_equiv := equiv.prod_comm V W,
 map_rel_iff' := begin
   intros a b,
   split, {
-    rw box_adj_rel_prod,
-    simp,
-    intro h,
-    cases h with hh hg, {
+    rw [box_adj_rel_prod, equiv.prod_comm_apply, prod.snd_swap, prod.fst_swap],
+    intro hHGadj,
+    cases hHGadj with hHadj hGadj, {
       right,
-      exact hh,
+      exact hHadj,
     },{
       left,
-      exact hg,
+      exact hGadj,
     },
   }, {
-    intro h,
-    rw box_adj_rel_prod at *,
-    simp,
-    cases h with hg hh, {
+    intro hHGadj,
+    rw [box_adj_rel_prod, equiv.prod_comm_apply, prod.snd_swap, prod.fst_swap],
+    cases hHGadj with hGadj hHadj, {
       right,
-      exact hg,
+      exact hGadj,
     }, {
-      left, exact hh,
+      left, exact hHadj,
     }
   }
 end,
 }
 
+/-- The box product is commutative up to isomorphism -/
 def box_product_assoc {U V W : Type} (G : simple_graph U)
   (H : simple_graph V) (K : simple_graph W) :
   ((G□H)□K) ≃g (G□(H□K)) := 
@@ -137,110 +130,139 @@ def box_product_assoc {U V W : Type} (G : simple_graph U)
   to_equiv := equiv.prod_assoc U V W,
   map_rel_iff' := begin
     intros a b,
-    rw equiv.prod_assoc_apply,
-    split,
-    rw box_adj_rel_prod,
-    {
-      simp,
+    rw [equiv.prod_assoc_apply, box_adj_rel_prod, equiv.prod_assoc_apply, prod.mk.inj_iff],
+    split, {
       intro h,
-      cases h with lhs rhs, {
-        cases lhs with eq hGadj,
-        cases eq with eq1 eq2,
+      cases h with hBGadj hBHK, {
         left,
-        split, {
-          exact eq2,
-        }, {
-          left,
-          exact ⟨eq1, hGadj⟩,
-        },
+        rcases hBGadj with ⟨⟨eq_b, eq_c⟩, hGadj⟩,
+        exact ⟨eq_c, or.inl ⟨eq_b, hGadj⟩⟩,
       }, {
-        cases rhs with eq hHKadj,
-        cases hHKadj with hHadj hKadj,
-        {
-          simp at hHadj,
-          cases hHadj with eq2 hH,
+        rcases hBHK with ⟨eq_a, hBHKadj⟩,
+        dsimp at *,
+        cases hBHKadj with hBHadj hBKadj, {
           left,
-          split, {
-            exact eq2,
-          }, {
-            right,
-            exact ⟨eq, hH⟩,
-          },
+          dsimp only at hBHadj,
+          cases hBHadj with eq_c hHadj,
+          exact ⟨eq_c, or.inr ⟨eq_a, hHadj⟩⟩,
         }, {
           right,
-          simp at hKadj,
-          cases hKadj with eq2 hK,
-          exact ⟨prod.ext eq eq2, hK⟩,
+          simp at hBKadj,
+          cases hBKadj with eq_b hKadj,
+          exact ⟨prod.ext eq_a eq_b, hKadj⟩,
         },
       },
     }, {
       intro h,
-      cases h with lhs rhs, {
-        cases lhs with eq hGHadj,
+      rw box_adj_rel_prod at *,
+      simp only,
+      cases h with hBGH rhs, {
+        --rcases hBGH with ⟨eq_c, ⟨eq_b, hGadj⟩, hHadj⟩,
+        cases hBGH with eq_c hGHadj,
         cases hGHadj with hGadj hHadj, {
           left,
-          cases hGadj with eq2 hG,
-          rw eq2,
-          simp,
-          exact ⟨eq, hG⟩,
+          cases hGadj with eq_b hG,
+          rw [eq_b, eq_self_iff_true, true_and],
+          exact ⟨eq_c, hG⟩,
         }, {
-          cases hHadj with eq2 hH,
+          cases hHadj with eq_a hH,
           right,
-          simp,
           split, {
-            exact eq2,
+            exact eq_a,
           }, {
             left,
-            simp,
-            exact ⟨eq, hH⟩,
+            exact ⟨eq_c, hH⟩,
           }
         },
       }, {
-        cases rhs with eq hKadj,
-        rw eq,
         right,
-        squeeze_simp,
-        right,
-        simp,
+        cases rhs with eq_a_and_b hKadj,
+        rw [eq_a_and_b, eq_self_iff_true, true_and],
+        simp only [irrefl, and_false, eq_self_iff_true, true_and, false_or],
         exact hKadj,
       },
     },
   end
 }
 
-lemma lift_adj_lhs {V W : Type} {a b : V} {w : W} {G : simple_graph V} {H : simple_graph W} :
-  G.adj a b → (G□H).adj (a, w) (b, w) :=
+-- Adjacency relations move between the simple graph and the box product
+lemma lift_adj_lhs {V W : Type} {a b : V} {G : simple_graph V} {H : simple_graph W} (w : W)
+  (hGadj : G.adj a b) : (G□H).adj (a, w) (b, w) :=
 begin
-  intro h,
   left,
-  simp only [eq_self_iff_true, true_and],
-  exact h,
+  rw [eq_self_iff_true, true_and],
+  exact hGadj,
 end
 
-lemma lift_adj_rhs {V W : Type} {v : V} {a b : W} {G : simple_graph V} {H : simple_graph W} :
-  H.adj a b → (G□H).adj (v, a) (v, b) :=
+lemma descend_adj_lhs {V W : Type} {a b : V} {G : simple_graph V} {H : simple_graph W}
+  (w : W) :
+  (G□H).adj (a, w) (b, w) → G.adj a b :=
+begin
+  rw box_adj_rel,
+  intro h,
+  cases h with hGB hHB, { 
+    exact hGB.2,
+  }, {
+    -- H is a simple graph so there is no edge between w and w
+    -- This is the condition irrefel,
+    -- and_false simplifies the hyp as if one side of an AND is false than the prop is false
+    simp only [irrefl, and_false] at hHB,
+    exfalso,
+    exact hHB,
+  }
+end
+
+lemma adj_lhs_equiv {V W : Type} {a b : V} (y : W)
+  (G : simple_graph V) (H : simple_graph W) :
+  (G□H).adj (a, y) (b, y) ↔ G.adj a b := ⟨descend_adj_lhs y, lift_adj_lhs y⟩
+
+lemma lift_adj_rhs {V W : Type} {a b : W} {G : simple_graph V} {H : simple_graph W}
+  (v : V) (hHadj : H.adj a b) : (G□H).adj (v, a) (v, b) :=
+begin
+  right,
+  rw [eq_self_iff_true, true_and],
+  exact hHadj,
+end
+
+lemma descend_adj_rhs {V W : Type} {a b : W} {G : simple_graph V}
+  {H : simple_graph W} (v : V) :
+  (G□H).adj (v, a) (v, b) → H.adj a b :=
 begin
   intro h,
-  right,
-  simp only [eq_self_iff_true, true_and],
-  exact h,
+  cases h with hGB hHB, {
+    simp only [irrefl, and_false] at hGB,
+    exfalso,
+    exact hGB,
+  }, {
+    exact hHB.2,
+  }
 end
+
+lemma adj_rhs_equiv {V W : Type} {a b : W} {G : simple_graph V}
+  {H : simple_graph W} (x : V) :
+  (G□H).adj (x, a) (x, b) ↔ H.adj a b := ⟨descend_adj_rhs x, lift_adj_rhs x⟩
+
+-- Lifts of walks from the simple graph to the box product
 
 -- Kevin helped with writting the inductive type here
-def lift_walk_lhs {V W : Type} (w : W) (G : simple_graph V) (H : simple_graph W)
+def lift_walk_lhs {V W : Type} (y : W) (G : simple_graph V) (H : simple_graph W)
   : Π {a b : V},
-  (G.walk a b) → (G□H).walk (a, w) (b, w)
-| a _ simple_graph.walk.nil := walk.nil
-| a b (@simple_graph.walk.cons _ _ _ c _ h p)
-  := walk.cons (lift_adj_lhs h) (lift_walk_lhs p)
+  (G.walk a b) → (G□H).walk (a, y) (b, y)
+| _ _ simple_graph.walk.nil := walk.nil
+| a b (@simple_graph.walk.cons _ _ _ c _ hGadj w)
+  := walk.cons (lift_adj_lhs y hGadj) (lift_walk_lhs w)
 
-def lift_walk_rhs {V W : Type} (v : V) (G : simple_graph V) (H : simple_graph W)
+def lift_walk_rhs {V W : Type} (x : V) (G : simple_graph V) (H : simple_graph W)
   : Π {a b : W},
-  (H.walk a b) → (G□H).walk (v, a) (v, b)
-| a _ simple_graph.walk.nil := walk.nil
-| a b (@simple_graph.walk.cons _ _ _ c _ h p)
-  := walk.cons (lift_adj_rhs h) (lift_walk_rhs p)
+  (H.walk a b) → (G□H).walk (x, a) (x, b)
+| _ _ simple_graph.walk.nil := walk.nil
+| a b (@simple_graph.walk.cons _ _ _ c _ hHadj p)
+  := walk.cons (lift_adj_rhs x hHadj) (lift_walk_rhs p)
 
+/--
+  The box product G□H is connected if and only if G and H are connected
+  The proof is to compose a lifted path of G with a lifted path of H
+-/
 lemma G_box_H_is_connected_if_G_H_connected {V W : Type} (G : simple_graph V) (H : simple_graph W) :
   G.is_connected ∧ H.is_connected → (G□H).is_connected :=
 begin
@@ -249,8 +271,8 @@ begin
   rw is_connected at *,
   cases hG_connected with hG_not_empty hg,
   cases hH_connected with hH_not_empty hh,
-  split,
-  {
+  split, {
+    -- Proof that the vertex set of G□H is not empty
     rw nonempty_prod,
     exact ⟨hG_not_empty, hH_not_empty⟩,
   }, {
@@ -278,184 +300,28 @@ begin
   }
 end
 
---- `simple_graph.walk.to_path` MEMO
-#check @simple_graph.walk.to_path
-
-lemma descend_adj_lhs {V W : Type} {a b : V} (w : W) (G : simple_graph V)
-  (H : simple_graph W) :
-  (G□H).adj (a, w) (b, w) → G.adj a b :=
-begin
-  rw box_adj_rel,
-  intro h,
-  cases h with hGB hHB,
-  { 
-    cases hGB with _ hG,
-    exact hG,
-  },
-  {
-    -- H is a simple graph so there is no edge between w and w
-    -- This is the condition irrefel,
-    -- and_false simplifies the hyp as if one side of an AND is false than the prop is false
-    simp only [irrefl, and_false] at hHB,
-    exfalso,
-    exact hHB,
-  }
-end
-
-lemma descend_adj_lhs_prod {V W : Type} {a b : V×W} {G : simple_graph V}
-  {H : simple_graph W} (he : a.snd = b.snd) :
-  (G□H).adj a b → G.adj a.fst b.fst :=
-begin
-  intro h,
-  cases h with hGB hHB,
-  { 
-    cases hGB with _ hG,
-    exact hG,
-  }, {
-    cases hHB with eq hH,
-    rw he at hH,
-    exfalso,
-    apply irrefl,
-    exact hH,
-  }
-end
-
-lemma descend_adj_rhs {V W : Type} {v : V} {a b : W} {G : simple_graph V}
-  {H : simple_graph W} :
-  (G□H).adj (v, a) (v, b) → H.adj a b :=
-begin
-  rw box_adj_rel,
-  intro h,
-  cases h with hGB hHB,
-  { 
-    -- Need to get explanation on
-    simp only [irrefl, and_false] at hGB,
-    exfalso,
-    exact hGB,
-  },
-  {
-    cases hHB with _ hH,
-    exact hH,
-  }
-end
-
-lemma descend_adj_rhs_prod {V W : Type} {a b : V×W} {G : simple_graph V}
-  {H : simple_graph W} (he : a.fst = b.fst) :
-  (G□H).adj a b → H.adj a.snd b.snd :=
-begin
-  intro h,
-  cases h with hGB hHB,
-  {
-    cases hGB with eq hG,
-    rw he at hG,
-    exfalso,
-    apply irrefl,
-    exact hG,
-  },
-  {
-    cases hHB with _ hH,
-    exact hH,
-  }
-end
-
-def decend_walk_lhs_prod {V W : Type} (G : simple_graph V) (H : simple_graph W)
-  : Π {a b : V×W},
-  (G□H).walk a b → (G.walk a.fst b.fst)
-| _ _ simple_graph.walk.nil := walk.nil
-| a b (@simple_graph.walk.cons fff ggg tttt c oooo h p) := begin
-  ---set f:= descend_adj_lhs_prod _ h,
-  by_cases he: a.snd = c.snd,
-  {
-    set f:= descend_adj_lhs_prod he h,
-    set wd:= decend_walk_lhs_prod p,
-    set w := walk.cons f wd,
-    exact w,
-  },
-  {
-    set wd:= decend_walk_lhs_prod p,
-    have hw : H.walk a.2 c.2, {
-      -- TODO
-      rw box_adj_rel_prod at h,
-      sorry,
-    },
-    set w2 := lift_walk_rhs a.1 G H hw,
-    --set w := walk.append w2 p,
-    --set w := walk.cons p w2
-    --set w := walk.cons (descend_adj_lhs h) (decend_walk_lhs p)
-    sorry,
-  }
-end
---walk.cons (descend_adj_lhs h) (decend_walk_lhs p)
-
--- Thanks Kenny
+-- Thanks Kenny Lau
 def descend_walk_lhs {V W : Type} [decidable_eq V] [decidable_eq W]
   {G : simple_graph V} {H : simple_graph W} [decidable_rel G.adj] [decidable_rel H.adj]
   : Π {vw1 vw2 : V × W},
   (G□H).walk vw1 vw2 → (G.walk vw1.1 vw2.1)
 | _ _ simple_graph.walk.nil := walk.nil
-| vw1 vw3 (@simple_graph.walk.cons _ _ _ vw2 _ h p) :=
-or.by_cases h (λ h1, walk.cons h1.2 (descend_walk_lhs p))
-  (λ h2, show G.walk vw1.1 vw3.1, by rw h2.1; exact descend_walk_lhs p)
+| vw1 vw3 (@simple_graph.walk.cons _ _ _ vw2 _ hGHadj p) :=
+or.by_cases hGHadj (λ hBG, walk.cons hBG.2 (descend_walk_lhs p))
+  (λ hBH, show G.walk vw1.1 vw3.1, by rw hBH.1; exact descend_walk_lhs p)
 
-
-#exit
--- TODO Pass hypo that there exist a path in G□H
-/-
-noncomputable def descend_walk_lhs_random {V W : Type} [decidable_eq W] {G : simple_graph V} {H : simple_graph W}
-  (w : W) (hc : (G□H).is_connected)
-  : Π {a b : V},
-  (G□H).walk (a, w) (b, w) → (G.walk a b)
+def descend_walk_rhs {V W : Type} [decidable_eq V] [decidable_eq W]
+  {G : simple_graph V} {H : simple_graph W} [decidable_rel G.adj] [decidable_rel H.adj]
+  : Π {vw1 vw2 : V × W},
+  (G□H).walk vw1 vw2 → (H.walk vw1.2 vw2.2)
 | _ _ simple_graph.walk.nil := walk.nil
-| a b (@simple_graph.walk.cons _ _ _ c _ h p) :=
-if he: w = c.2 then
-  walk.cons 
-    (descend_adj_lhs w G H (begin
-      unfold box_product at h,
-      rw ← he at h, exact h,
-    end : (G□H).adj (a, w) (c.1, w)))
-    (descend_walk_lhs (begin
-      rw ← he at p, exact p,
-    end : (G□H).walk (c1, w) (b, w)))
-else
-  descend_walk_lhs (walk.append (hc.2 (a, w) (c1, c2)).some p)
--/
+| vw1 vw3 (@simple_graph.walk.cons _ _ _ vw2 _ hGHadj p) :=
+or.by_cases hGHadj (λ hGB, show H.walk vw1.2 vw3.2, by rw hGB.1; exact descend_walk_rhs p)
+  (λ hHB, walk.cons hHB.2 (descend_walk_rhs p))
+  
 
-/-
-def descend_walk_lhs2 {V W : Type} {G : simple_graph V}
-  {H : simple_graph W} (x : W) (y : W) (hc : (G□H).is_connected) :
-  Π {a b : V}, (G□H).walk (a, x) (b, y) → (G.walk a b)
-| _ _ simple_graph.walk.nil := walk.nil
-| a b (@simple_graph.walk.cons _ _ _ (c1, c2) _ h p) :=
-if he: x = c2 then
-  walk.cons 
-    (descend_adj_lhs x G H (begin
-      rw ← he at h, exact h,
-    end : (G□H).adj (a, x) (c1, x)))
-    (descend_walk_lhs2 (begin
-      rw ← he at p, exact p,
-    end : (G□H).walk (c1, x) (b, y)))
-else
-  descend_walk_lhs2 p
--/
-
-/-
-lemma project_box_product_to_G {V W : Type} (G : simple_graph V)
-  (H : simple_graph W) : (G□H) →g G :=
-{
-  to_fun := λ x, x.1,
-  map_rel' := begin
-    intros a b hBadj,
-    cases hBadj with Gem Hem,
-    { exact Gem.2, },
-    {
-      
-    },
-  end
-}
--/
-
-lemma G_and_H_connected_if_G_box_H_connected {V W : Type} (G : simple_graph V)
-  (H : simple_graph W) :
+lemma G_and_H_connected_if_G_box_H_connected {V W : Type} /-[decidable_eq V] [decidable_eq W]-/
+  (G : simple_graph V) (H : simple_graph W) /-[decidable_rel G.adj] [decidable_rel H.adj]-/ :
   (G□H).is_connected → G.is_connected ∧ H.is_connected :=
 begin
   intros hGH_connected,
@@ -471,7 +337,14 @@ begin
       intros g1 g2,
       set h := hH_not_empty.some,
       specialize hGH_has_path (g1, h) (g2, h),
-      sorry,
+      cases hGH_has_path with GHw hGHw_p,
+      classical,
+      set w := descend_walk_lhs GHw,
+      -- Create a path from the walk
+      set p := (simple_graph.walk.to_path w),
+      use p,
+      -- p.2 is the field which has the proof that p is a path
+      exact p.2,
     },
   }, {
     split, {
@@ -481,7 +354,14 @@ begin
       intros h1 h2,
       set g := hG_not_empty.some,
       specialize hGH_has_path (g, h1) (g, h2),
-      sorry,
+      cases hGH_has_path with GHw hGHw_p,
+      classical,
+      set w := descend_walk_rhs GHw,
+      -- Create a path from the walk
+      set p := (simple_graph.walk.to_path w),
+      use p,
+      -- p.2 is the field which has the proof that p is a path
+      exact p.2,
     },
   },
 end
@@ -499,26 +379,6 @@ end
 
 variables {U V W : Type} (G : simple_graph U) (H : simple_graph V)
 
-def is_box_product {V W : Type} (B : simple_graph (V × W)) (G : simple_graph V) (H : simple_graph W) : Prop :=
-  ∀ x y : V×W, B.adj x y ↔ (G.adj x.1 y.1 ∧ x.2=y.2) ∧ B.adj x y ↔ (x.1=y.1 ∧ H.adj x.2 y.2)
-
-lemma box_product_is_box_product {V W : Type} (G : simple_graph V) (H : simple_graph W) :
-  is_box_product (G□H) G H :=
-begin
-  intros x y,
-  split,
-  {
-    rw box_adj_rel_prod,
-    intros h,
-    cases h with lhs rhs,
-    ---apply rhs,
-    sorry,
-    ---cases h with aaa bbb ccc ddd,
-  }, {
-    sorry,
-  },
-end
-
 -- TODO prove that (g_i, h) is iso to G and (g, h_i) is iso to H
 
 lemma lhs_embedded_in_box {V W : Type} (G : simple_graph V) (H : simple_graph W) :
@@ -533,12 +393,6 @@ lemma lhs_induced_box {V W : Type} (G : simple_graph V) (H : simple_graph W) :
 begin
 end
 -/
-
-#check walk.cons_append 
-
-variables {u v : V} {w : W}
-
-#check (u, w)
 
 lemma left_induced_box_product {V W : Type} (G : simple_graph V) (H : simple_graph W)
   (B : simple_graph V×W) : Prop := sorry
